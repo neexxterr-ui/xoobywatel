@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,17 +14,19 @@
   <div id="status">Ładowanie...</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-// Firebase config
+// 🔑 NOWA KONFIGURACJA FIREBASE (bywatel-eb940)
 const firebaseConfig = {
-  apiKey: "AIzaSyAEK_UPXXpBLAeN3KKt5zUI5zhBhPw3lYU",
-  authDomain: "mbywatel-6b604.firebaseapp.com",
-  projectId: "mbywatel-6b604",
-  storageBucket: "mbywatel-6b604.firebasestorage.app",
-  messagingSenderId: "346214908701",
-  appId: "1:346214908701:web:26ba7ec06f4717604a57f4"
+  apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
+  authDomain: "bywatel-eb940.firebaseapp.com",
+  databaseURL: "https://bywatel-eb940-default-rtdb.firebaseio.com",
+  projectId: "bywatel-eb940",
+  storageBucket: "bywatel-eb940.firebasestorage.app",
+  messagingSenderId: "648437385966",
+  appId: "1:648437385966:web:96a58994f12d4d8c4f81ff",
+  measurementId: "G-0505X7DVGH"
 };
 
 const app = initializeApp(firebaseConfig);
