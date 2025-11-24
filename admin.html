@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <title>Panel admina</title>
-  <style>
-    body { font-family: Arial; background: #111; color: #fff; text-align:center; }
-    #loginForm, #panel { margin-top: 50px; }
-    input { padding:10px; margin:5px; width:250px; border-radius:5px; border:none; }
-    button { padding:10px 20px; background:#6a00d4; border:none; border-radius:5px; color:white; cursor:pointer; }
-    #panel { display:none; }
-    pre { text-align:left; margin:auto; width:90%; background:#222; padding:20px; border-radius:6px; }
-  </style>
+<meta charset="UTF-8">
+<title>Panel admina</title>
+<style>
+body { font-family: Arial; background: #111; color: #fff; text-align:center; }
+#loginForm, #panel { margin-top: 50px; }
+input { padding:10px; margin:5px; width:250px; border-radius:5px; border:none; }
+button { padding:10px 20px; background:#6a00d4; border:none; border-radius:5px; color:white; cursor:pointer; }
+#panel { display:none; }
+pre { text-align:left; margin:auto; width:90%; background:#222; padding:20px; border-radius:6px; }
+</style>
 </head>
-
 <body>
 
 <h1>ADMIN PANEL</h1>
@@ -58,13 +57,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 🔑 Twój UID admina
 const ADMIN_UID = "tIsMfJ9kH9hF4sddfQ4VUSf9fnm2";
-
-// 🔗 Prefix do linków
 const TOKEN_PREFIX = "https://mbywatel4.netlify.app/?token=";
 
-// Logowanie
+// Logowanie admina
 document.getElementById("loginBtn").onclick = async () => {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
@@ -76,7 +72,7 @@ document.getElementById("loginBtn").onclick = async () => {
   }
 };
 
-// Pokazanie panelu po zalogowaniu
+// Pokaż panel po zalogowaniu
 onAuthStateChanged(auth, (user) => {
   if (user && user.uid === ADMIN_UID) {
     document.getElementById("loginForm").style.display = "none";
@@ -87,7 +83,7 @@ onAuthStateChanged(auth, (user) => {
 // Generowanie tokenów
 document.getElementById("genBtn").onclick = async () => {
   const count = Number(document.getElementById("count").value);
-  if (isNaN(count) || count < 1 || count > 500) return alert("Wprowadź poprawną liczbę tokenów (1-500)");
+  if (isNaN(count) || count < 1 || count > 500) return alert("Wprowadź liczbę tokenów (1-500)");
 
   const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
   const output = [];
