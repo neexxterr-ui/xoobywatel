@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Sprawdzenie Tokenu</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    .ok { color: green; font-size: 24px; }
-    .fail { color: red; font-size: 24px; }
-  </style>
+<meta charset="UTF-8">
+<title>Sprawdzenie Tokenu</title>
+<style>
+body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+.ok { color: green; font-size: 24px; }
+.fail { color: red; font-size: 24px; }
+</style>
 </head>
 <body>
-  <h1>Sprawdzenie tokenu</h1>
-  <div id="status">Ładowanie...</div>
+<h1>Sprawdzenie tokenu</h1>
+<div id="status">Ładowanie...</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-// 🔑 KONFIGURACJA NOWEGO FIREBASE (bywatel-eb940)
+// 🔑 Konfiguracja Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -43,25 +43,18 @@ if (!token) {
 
   get(tokenRef).then(snapshot => {
     if (!snapshot.exists()) {
-      // Token nie istnieje
       statusEl.innerHTML = '<span class="fail">Token nie istnieje ❌</span>';
     } else if (snapshot.val() === true) {
-      // Token już użyty
       statusEl.innerHTML = '<span class="fail">Token już użyty ❌</span>';
     } else {
-      // Token poprawny → oznacz jako użyty
-      set(tokenRef, true)
-        .then(() => {
-          statusEl.innerHTML = '<span class="ok">Token poprawny ✅ Przekierowanie...</span>';
-          // Przekierowanie po krótkiej chwili
-          setTimeout(() => {
-            window.location.href = "przekierowanie.html";
-          }, 1000);
-        })
-        .catch(err => {
-          console.error(err);
-          statusEl.innerHTML = '<span class="fail">Błąd przy zapisie tokenu ❌</span>';
-        });
+      statusEl.innerHTML = '<span class="ok">Token poprawny ✅ Przekierowanie...</span>';
+      // oznacz token jako użyty
+      set(tokenRef, true).catch(err => {
+        console.error("Błąd przy zapisie tokenu:", err);
+      });
+      setTimeout(() => {
+        window.location.href = "przekierowanie.html";
+      }, 1000);
     }
   }).catch(err => {
     console.error(err);
