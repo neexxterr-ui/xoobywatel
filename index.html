@@ -17,7 +17,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-// 🔑 NOWA KONFIGURACJA FIREBASE (bywatel-eb940)
+// 🔑 KONFIGURACJA NOWEGO FIREBASE (bywatel-eb940)
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -40,15 +40,28 @@ if (!token) {
   statusEl.innerHTML = '<span class="fail">Brak tokenu w linku!</span>';
 } else {
   const tokenRef = ref(db, "tokens/" + token);
+
   get(tokenRef).then(snapshot => {
     if (!snapshot.exists()) {
+      // Token nie istnieje
       statusEl.innerHTML = '<span class="fail">Token nie istnieje ❌</span>';
     } else if (snapshot.val() === true) {
+      // Token już użyty
       statusEl.innerHTML = '<span class="fail">Token już użyty ❌</span>';
     } else {
-      set(tokenRef, true); // token ustawiony jako użyty
-      // przekierowanie
-      window.location.href = "przekierowanie.html";
+      // Token poprawny → oznacz jako użyty
+      set(tokenRef, true)
+        .then(() => {
+          statusEl.innerHTML = '<span class="ok">Token poprawny ✅ Przekierowanie...</span>';
+          // Przekierowanie po krótkiej chwili
+          setTimeout(() => {
+            window.location.href = "przekierowanie.html";
+          }, 1000);
+        })
+        .catch(err => {
+          console.error(err);
+          statusEl.innerHTML = '<span class="fail">Błąd przy zapisie tokenu ❌</span>';
+        });
     }
   }).catch(err => {
     console.error(err);
