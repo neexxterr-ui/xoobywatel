@@ -1,32 +1,42 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Generator tokenów</title>
-<style>
-body { font-family: Arial; background:#111; color:#fff; text-align:center; padding:50px; }
-input { padding:10px; margin:5px; width:250px; border-radius:5px; border:none; }
-button { padding:10px 20px; background:#6a00d4; border:none; border-radius:5px; color:white; cursor:pointer; }
-pre { text-align:left; margin:auto; width:90%; background:#222; padding:20px; border-radius:6px; white-space:pre-wrap; }
-</style>
+  <meta charset="UTF-8">
+  <title>Panel Admin - Tokeny Jednorazowe</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    input, button { padding: 8px; margin: 6px 0; font-size: 14px; }
+    textarea { width:100%; height:160px; margin-top:10px; }
+    .small { font-size: 13px; color: #666; }
+    .links { white-space: pre-wrap; background:#f7f7f7; padding:10px; border-radius:6px; }
+  </style>
 </head>
 <body>
+  <h2>Admin: Generowanie tokenów jednorazowych</h2>
 
-<h1>Generator tokenów</h1>
+  <label>Ile tokenów wygenerować?</label><br>
+  <input id="count" type="number" value="10" min="1" max="1000">
 
-<label>Ile tokenów wygenerować:</label><br>
-<input id="count" value="10" type="number" min="1" max="500"><br><br>
+  <label>Długość tokenu</label><br>
+  <input id="length" type="number" value="20" min="8" max="64">
 
-<button id="genBtn">Generuj tokeny</button>
+  <label>Twój link (np. https://m-obywatelek-67.vercel.app/index.html?token=)</label><br>
+  <input id="prefix" type="text" value="https://m-obywatelek-67.vercel.app/index.html?token=" style="width:100%">
 
-<h3>Linki:</h3>
-<pre id="output"></pre>
+  <div style="margin-top:10px;">
+    <button id="genBtn">Generuj i zapisz w Firebase</button>
+    <button id="localBtn">Generuj lokalnie (nie zapisuje)</button>
+    <button id="csvBtn" disabled>Pobierz CSV</button>
+  </div>
+
+  <p class="small">Lista tokenów / linków:</p>
+  <div id="out" class="links">Brak</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
-// 🔑 KONFIGURACJA FIREBASE
+// === KONFIGURACJA FIREBASE (TA, Z KTÓREJ KORZYSTAŁ INDEX.HTML) ===
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -41,40 +51,107 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// link do index.html
-const TOKEN_PREFIX = "https://m-obywatelek-67.vercel.app/index.html?token=";
+// --- ELEMENTY DOM ---
+const countEl = document.getElementById("count");
+const lengthEl = document.getElementById("length");
+const prefixEl = document.getElementById("prefix");
+const outEl = document.getElementById("out");
+const genBtn = document.getElementById("genBtn");
+const localBtn = document.getElementById("localBtn");
+const csvBtn = document.getElementById("csvBtn");
 
-// funkcja do bezpiecznego klucza Firebase
-function safeKey(str) {
-  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+let lastGenerated = [];
+
+// --- FUNKCJE ---
+function randToken(len) {
+  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  let s = "";
+  for (let i=0;i<len;i++){
+    s += alphabet[arr[i] % alphabet.length];
+  }
+  return s;
 }
 
-document.getElementById("genBtn").onclick = async () => {
-  const count = Number(document.getElementById("count").value);
-  if (isNaN(count) || count < 1 || count > 500) return alert("Wprowadź liczbę tokenów (1-500)");
+function renderList(list) {
+  if (list.length === 0) {
+    outEl.textContent = "Brak";
+    csvBtn.disabled = true;
+    return;
+  }
+  const lines = list.map((x,i)=> `${i+1}. ${x.token}   →   ${x.link}`);
+  outEl.textContent = lines.join("\n");
+  csvBtn.disabled = false;
+}
 
-  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
-  const output = [];
-  const updates = {};
-
-  for (let i = 0; i < count; i++) {
-    let token = "";
-    for (let j = 0; j < 20; j++) {
-      token += alphabet[Math.floor(Math.random() * alphabet.length)];
+function generateTokens(count, len, prefix) {
+  const set = new Set();
+  const arr = [];
+  while (arr.length < count) {
+    const t = randToken(len);
+    if (!set.has(t)) {
+      set.add(t);
+      arr.push({ token: t, link: prefix + encodeURIComponent(t) });
     }
-    const link = TOKEN_PREFIX + encodeURIComponent(token);
-    output.push(link);
-    updates[safeKey(token)] = { value: token, used: false }; // poprawny format
   }
+  return arr;
+}
 
+async function saveToFirebase(list) {
+  const updates = {};
+  list.forEach(item => {
+    updates['/tokens/' + item.token] = { value: item.token, used: false }; // format zgodny z index.html
+  });
+  await update(ref(db), updates);
+}
+
+// --- OBSŁUGA PRZYCISKÓW ---
+genBtn.addEventListener("click", async () => {
+  genBtn.disabled = true;
+  genBtn.textContent = "Generowanie...";
   try {
-    await update(ref(db, "/tokens"), updates);
-    document.getElementById("output").innerText = output.join("\n\n");
+    const count = Math.min(1000, Math.max(1, Number(countEl.value) || 10));
+    const len = Math.min(64, Math.max(8, Number(lengthEl.value) || 20));
+    const prefix = (prefixEl.value || "").trim();
+    const list = generateTokens(count, len, prefix);
+    await saveToFirebase(list);
+    lastGenerated = list;
+    renderList(list);
+    genBtn.textContent = "Gotowe! Zapisano w Firebase";
   } catch (e) {
-    document.getElementById("output").innerText = "Błąd przy zapisie tokenów: " + e.message;
+    console.error(e);
+    genBtn.textContent = "Błąd — sprawdź konsolę";
+    alert("Błąd przy zapisie do Firebase!");
+  } finally {
+    genBtn.disabled = false;
+    setTimeout(()=> genBtn.textContent = "Generuj i zapisz w Firebase", 2000);
   }
-};
-</script>
+});
 
+localBtn.addEventListener("click", () => {
+  const count = Math.min(1000, Math.max(1, Number(countEl.value) || 10));
+  const len = Math.min(64, Math.max(8, Number(lengthEl.value) || 20));
+  const prefix = (prefixEl.value || "").trim();
+  const list = generateTokens(count, len, prefix);
+  lastGenerated = list;
+  renderList(list);
+});
+
+csvBtn.addEventListener("click", () => {
+  if (!lastGenerated || lastGenerated.length === 0) return;
+  let csv = "token,link\n";
+  lastGenerated.forEach(x => { csv += `${x.token},${x.link}\n`; });
+  const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tokens.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+</script>
 </body>
 </html>
