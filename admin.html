@@ -26,7 +26,7 @@ pre { text-align:left; margin:auto; width:90%; background:#222; padding:20px; bo
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-// 🔑 KONFIGURACJA FIREBASE – już wszystkie Twoje dane
+// 🔑 KONFIGURACJA FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -41,10 +41,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Link do sprawdzacza tokenów
+// link do index.html
 const TOKEN_PREFIX = "https://m-obywatelek-67.vercel.app/index.html?token=";
 
-// Funkcja do bezpiecznego klucza w Firebase
+// funkcja do bezpiecznego klucza Firebase
 function safeKey(str) {
   return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
@@ -64,11 +64,10 @@ document.getElementById("genBtn").onclick = async () => {
     }
     const link = TOKEN_PREFIX + encodeURIComponent(token);
     output.push(link);
-    updates[safeKey(token)] = { value: token, used: false }; // zapis w poprawnym formacie
+    updates[safeKey(token)] = { value: token, used: false }; // poprawny format
   }
 
   try {
-    // Nadpisuje tylko nowe tokeny, nie usuwa istniejących
     await update(ref(db, "/tokens"), updates);
     document.getElementById("output").innerText = output.join("\n\n");
   } catch (e) {
