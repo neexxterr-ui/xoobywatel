@@ -18,7 +18,7 @@ body { font-family: Arial; background:#111; color:#fff; text-align:center; margi
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getDatabase, ref, runTransaction, get } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-// KONFIGURACJA – musi być identyczna jak w generatorze
+// 🔑 KONFIGURACJA – identyczna jak w generatorze
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -43,16 +43,22 @@ function show(msg, isError = false) {
   statusEl.className = isError ? "fail" : "ok";
 }
 
+// funkcja do bezpiecznego klucza Firebase
+function safeKey(str) {
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
 (async () => {
   if (!token) { show("Brak tokenu w linku! ❌", true); return; }
 
   const decoded = decodeURIComponent(token).trim();
-  console.log("Sprawdzany token:", decoded); // debug
+  const key = safeKey(decoded);
+  console.log("Sprawdzany token:", decoded, "Safe key:", key);
 
-  const tokenRef = ref(db, "tokens/" + decoded);
+  const tokenRef = ref(db, "tokens/" + key);
 
   try {
-    // dodatkowy test – sprawdzamy czy w ogóle istnieje
+    // sprawdzenie, czy token istnieje
     const snap = await get(tokenRef);
     console.log("Snapshot z Firebase:", snap.val());
     if (!snap.exists()) { 
@@ -62,20 +68,17 @@ function show(msg, isError = false) {
 
     // transakcja oznaczająca token jako użyty
     const result = await runTransaction(tokenRef, (currentValue) => {
-      if (currentValue === null) return;      // token nie istnieje
-      if (currentValue === true) return;      // token już użyty
-      return true;                             // oznaczamy jako użyty
+      if (!currentValue || currentValue.used === true) return; // już użyty
+      return { value: currentValue.value, used: true };        // oznaczamy jako użyty
     });
 
     if (!result.committed) {
-      const val = result.snapshot ? result.snapshot.val() : null;
-      if (val === null) show("Token nie istnieje ❌", true);
-      else if (val === true) show("Token już użyty ❌", true);
-      else show("Niepowodzenie transakcji ❌", true);
+      show("Token już użyty ❌", true);
     } else {
       show("Token poprawny ✅ Przekierowanie za 1s...");
       setTimeout(() => window.location.href = "przekierowanie.html", 1000);
     }
+
   } catch (err) {
     console.error(err);
     show("Błąd przy sprawdzaniu tokenu ❌", true);
