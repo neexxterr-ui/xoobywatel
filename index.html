@@ -45,18 +45,18 @@ function show(msg, isError = false) {
   if (!token) { show("Brak tokenu w linku! ❌", true); return; }
 
   const decoded = decodeURIComponent(token).trim();
+  console.log("Sprawdzany token:", decoded); // do debugowania
+
   const tokenRef = ref(db, "tokens/" + decoded);
 
   try {
-    // Atomowa transakcja
     const result = await runTransaction(tokenRef, (currentValue) => {
-      if (currentValue === null) return; // token nie istnieje – transakcja nie zmieni wartości
-      if (currentValue === true) return; // token już użyty – transakcja nie zmieni wartości
-      return true; // oznaczamy token jako użyty
+      if (currentValue === null) return; // token nie istnieje
+      if (currentValue === true) return;   // token już użyty
+      return true;                         // oznaczamy jako użyty
     });
 
     if (!result.committed) {
-      // Transakcja nie wykonała zmiany – sprawdzamy powód
       const val = result.snapshot ? result.snapshot.val() : null;
       if (val === null) show("Token nie istnieje ❌", true);
       else if (val === true) show("Token już użyty ❌", true);
