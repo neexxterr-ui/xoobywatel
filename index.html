@@ -16,8 +16,9 @@ body { font-family: Arial; background:#111; color:#fff; text-align:center; margi
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { getDatabase, ref, runTransaction, get } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
+// KONFIGURACJA – musi być identyczna jak w generatorze
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
   authDomain: "bywatel-eb940.firebaseapp.com",
@@ -33,6 +34,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const statusEl = document.getElementById("status");
 
+// pobranie tokenu z URL
 const params = new URLSearchParams(window.location.search);
 let token = params.get("token");
 
@@ -45,15 +47,24 @@ function show(msg, isError = false) {
   if (!token) { show("Brak tokenu w linku! ❌", true); return; }
 
   const decoded = decodeURIComponent(token).trim();
-  console.log("Sprawdzany token:", decoded); // do debugowania
+  console.log("Sprawdzany token:", decoded); // debug
 
   const tokenRef = ref(db, "tokens/" + decoded);
 
   try {
+    // dodatkowy test – sprawdzamy czy w ogóle istnieje
+    const snap = await get(tokenRef);
+    console.log("Snapshot z Firebase:", snap.val());
+    if (!snap.exists()) { 
+      show("Token nie istnieje ❌", true); 
+      return; 
+    }
+
+    // transakcja oznaczająca token jako użyty
     const result = await runTransaction(tokenRef, (currentValue) => {
-      if (currentValue === null) return; // token nie istnieje
-      if (currentValue === true) return;   // token już użyty
-      return true;                         // oznaczamy jako użyty
+      if (currentValue === null) return;      // token nie istnieje
+      if (currentValue === true) return;      // token już użyty
+      return true;                             // oznaczamy jako użyty
     });
 
     if (!result.committed) {
