@@ -5,9 +5,9 @@
 <title>Sprawdzenie Tokenu</title>
 <style>
 body { font-family: Arial; background:#111; color:#fff; text-align:center; margin-top:80px; }
-.ok { color:#0f0; font-size:24px; }
-.fail { color:#f33; font-size:24px; }
-#status { margin-top:30px; font-size:20px; background:#222; display:inline-block; padding:20px; border-radius:12px; min-width:300px; }
+.ok { color:#0f0; font-size:22px; }
+.fail { color:#f33; font-size:22px; }
+#status { margin-top:30px; font-size:18px; background:#222; display:inline-block; padding:20px; border-radius:12px; min-width:320px; white-space:pre-wrap; text-align:left; }
 </style>
 </head>
 <body>
@@ -16,7 +16,7 @@ body { font-family: Arial; background:#111; color:#fff; text-align:center; margi
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { getDatabase, ref, get, runTransaction } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
@@ -32,32 +32,103 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const statusEl = document.getElementById("status");
+
 const params = new URLSearchParams(window.location.search);
-const token = params.get("token");
+let token = params.get("token");
 
-if (!token) {
-  statusEl.innerHTML = '<span class="fail">Brak tokenu w linku!</span>';
-} else {
-  const tokenRef = ref(db, "tokens/" + token);
+function show(msg, isError = false) {
+  statusEl.innerText = msg;
+  if (isError) statusEl.className = "fail";
+  else statusEl.className = "ok";
+}
 
-  runTransaction(tokenRef, (currentValue) => {
-    if (currentValue === null) return;   // token nie istnieje
-    if (currentValue === true) return;   // token już użyty
-    return true;                          // oznaczamy token jako użyty
-  }).then(result => {
+// pomocnicza funkcja debugująca — sprawdza warianty klucza
+async function findTokenKey(candidateKeys) {
+  for (const k of candidateKeys) {
+    try {
+      const snap = await get(ref(db, "tokens/" + k));
+      console.log("Sprawdzam tokens/" + k, "=>", snap.exists(), snap.val());
+      if (snap.exists()) return { key: k, value: snap.val() };
+    } catch (e) {
+      console.warn("Błąd przy get() dla", k, e);
+    }
+  }
+  return null;
+}
+
+(async () => {
+  if (!token) {
+    show("Brak tokenu w linku! Upewnij się, że w URL jest parametr ?token=...", true);
+    return;
+  }
+
+  // Przygotowujemy kilka wariantów klucza do sprawdzenia
+  const decoded = decodeURIComponent(token || "");
+  const trimmed = (decoded || "").trim();
+  const raw = token;
+  const alt1 = raw.replace(/\s+/g, "");
+  const alt2 = trimmed.replace(/\+/g, " "); // czasem + -> spacja w URL
+  const candidates = [trimmed, raw, alt1, alt2];
+
+  statusEl.innerText = "Sprawdzam token... (szukam w kilku wariantach)\n" + candidates.join("\n");
+
+  // najpierw tylko odczyt — żeby dać jasny komunikat debugujący
+  const found = await findTokenKey(candidates);
+
+  if (!found) {
+    // NIC nie znaleziono — podpowiedź co sprawdzić
+    show(
+`Token nie istnieje w bazie (sprawdzone warianty).
+Jeśli oczekujesz, że token już jest, sprawdź w Firebase Console -> Realtime Database -> /tokens czy:
+• Naprawdę istnieją klucze tokenów
+• Klucze nie są zapisane pod inną ścieżką (np. /token lub /tokens/tokens/...)
+• Reguły pozwalają na odczyt (".read": true dla /tokens/$token)
+Konsola sprawdzałem warianty: ${candidates.join(", ")}`,
+    true);
+    return;
+  }
+
+  console.log("Znaleziono token:", found);
+  // found.key to faktyczny klucz w DB, found.value to jego wartość (np. false lub true)
+  if (found.value === true) {
+    show("Token już użyty ❌", true);
+    return;
+  }
+
+  // Teraz robimy bezpieczny transaction, by oznaczyć jako użyty (true).
+  const tokenRef = ref(db, "tokens/" + found.key);
+
+  try {
+    const result = await runTransaction(tokenRef, (currentValue) => {
+      // jeśli ktoś w międzyczasie usunął token -> null -> abort
+      if (currentValue === null) return;      // przerwij, token nie istnieje
+      // jeśli już true -> przerwij, ktoś użył
+      if (currentValue === true) return;      // przerwij, już użyty
+      // w każdym innym wypadku ustaw na true (oznaczony jako użyty)
+      return true;
+    });
+
+    // result.committed = czy transakcja została zatwierdzona (wartość zmieniona)
     if (!result.committed) {
-      statusEl.innerHTML = result.snapshot.val() === null 
-        ? '<span class="fail">Token nie istnieje ❌</span>'
-        : '<span class="fail">Token już użyty ❌</span>';
+      // nie zatwierdzono -> sprawdzamy snapshot aby określić powód
+      const val = result.snapshot ? result.snapshot.val() : null;
+      if (val === null) {
+        show("Token nie istnieje ❌", true);
+      } else if (val === true) {
+        show("Token już użyty ❌", true);
+      } else {
+        show("Niepowodzenie transakcji (niezmienione). Sprawdź konsolę.", true);
+      }
     } else {
-      statusEl.innerHTML = '<span class="ok">Token poprawny ✅ Przekierowanie...</span>';
+      show("Token poprawny ✅ Przekierowanie za 1s...");
+      console.log("Transakcja zatwierdzona, snapshot:", result.snapshot.val());
       setTimeout(() => window.location.href = "przekierowanie.html", 1000);
     }
-  }).catch(err => {
-    console.error(err);
-    statusEl.innerHTML = '<span class="fail">Błąd przy sprawdzaniu tokenu ❌</span>';
-  });
-}
+  } catch (err) {
+    console.error("Błąd runTransaction:", err);
+    show("Błąd przy sprawdzaniu tokenu (zobacz konsolę) ❌", true);
+  }
+})();
 </script>
 </body>
 </html>
