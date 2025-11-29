@@ -225,13 +225,11 @@ html, body {
     margin-bottom: auto;
 }
 
-.version{
-    margin-right: 0px;
+.version {
     opacity: 0.5;
     font-size: 14px;
-    height: max-content;
-    margin-top: auto;
-    margin-bottom: auto;
-    width: max-content;
-    margin-left: auto;
+    width: max-content;   
+    margin: 0 auto;       
+    display: block;       
+    text-align: center;   
 }
