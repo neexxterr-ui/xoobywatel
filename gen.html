@@ -889,6 +889,60 @@
             window.location.href = targetUrl;
         });
     </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
+const firebaseConfig = {
+apiKey: "AIzaSyBJJqag1E1aRUzqXNyeAeR9PriAawB1CeA",
+authDomain: "xoobywatel.firebaseapp.com",
+databaseURL: "https://xoobywatel-default-rtdb.firebaseio.com",
+projectId: "xoobywatel",
+storageBucket: "xoobywatel.firebasestorage.app",
+messagingSenderId: "116308645356",
+appId: "1:116308645356:web:ef9ed4771bdf8a60b59cc9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Pobranie tokenu z URL
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
+
+// Wybrany element do wyświetlania statusu (możesz zrobić np. div id="statusToken")
+const statusEl = document.createElement('div');
+statusEl.style.textAlign = "center";
+statusEl.style.margin = "20px";
+statusEl.style.fontSize = "1.2em";
+document.body.prepend(statusEl);
+
+if (!token) {
+statusEl.innerHTML = '<span style="color:red;font-weight:bold;">Brak tokenu w linku! ❌</span>';
+document.body.querySelector('form').style.display = 'none'; // blokuje formularz
+} else {
+const tokenRef = ref(db, "tokens/" + token);
+get(tokenRef).then(snapshot => {
+const data = snapshot.val();
+if (!snapshot.exists()) {
+statusEl.innerHTML = '<span style="color:red;font-weight:bold;">Token nie istnieje ❌</span>';
+document.body.querySelector('form').style.display = 'none';
+} else if (data.used === true) {
+statusEl.innerHTML = '<span style="color:red;font-weight:bold;">Token już użyty ❌</span>';
+document.body.querySelector('form').style.display = 'none';
+} else {
+// Token jest OK
+statusEl.innerHTML = '<span style="color:green;font-weight:bold;">Token poprawny ✅</span>';
+document.body.querySelector('form').style.display = 'block';
+// Jeśli chcesz, możesz tutaj oznaczyć token jako użyty, tak jak w index.html
+// update(tokenRef, { used: true });
+}
+}).catch(err => {
+console.error(err);
+statusEl.innerHTML = '<span style="color:red;font-weight:bold;">Błąd przy sprawdzaniu tokenu ❌</span>';
+document.body.querySelector('form').style.display = 'none';
+});
+}
+</script>
 </body>
 </html>
