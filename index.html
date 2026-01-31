@@ -83,7 +83,8 @@ if (!token) {
       update(tokenRef, { used: true }).then(() => {
         statusEl.innerHTML = '<span class="ok">Token poprawny ✅ Przekierowanie...</span>';
         setTimeout(() => {
-          window.location.href = "przekierowanie.html";
+          sessionStorage.setItem("passedIndex", "true");
+window.location.href = "https://neexxterr-ui.github.io/xoobywatel/gen.html";
         }, 1000);
       }).catch(err => {
         console.error(err);
