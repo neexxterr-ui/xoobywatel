@@ -91,15 +91,15 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https:/
 
 // === KONFIG FIREBASE ===
 const firebaseConfig = {
-  apiKey: "AIzaSyC7jjcojlIoiXXflxpUT5ncu33jDF7p60k",
-  authDomain: "bywatel-eb940.firebaseapp.com",
-  databaseURL: "https://bywatel-eb940-default-rtdb.firebaseio.com",
-  projectId: "bywatel-eb940",
-  storageBucket: "bywatel-eb940.firebasestorage.app",
-  messagingSenderId: "648437385966",
-  appId: "1:648437385966:web:96a58994f12d4d8c4f81ff",
-  measurementId: "G-0505X7DVGH"
+  apiKey: "AIzaSyBJJqag1E1aRUzqXNyeAeR9PriAawB1CeA",
+  authDomain: "xoobywatel.firebaseapp.com",
+  databaseURL: "https://xoobywatel-default-rtdb.firebaseio.com",
+  projectId: "xoobywatel",
+  storageBucket: "xoobywatel.firebasestorage.app",
+  messagingSenderId: "116308645356",
+  appId: "1:116308645356:web:ef9ed4771bdf8a60b59cc9"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -119,7 +119,7 @@ const genBtn = document.getElementById("genBtn");
 const localBtn = document.getElementById("localBtn");
 
 let lastGenerated = [];
-const ADMIN_UID = "tIsMfJ9kH9hF4sddfQ4VUSf9fnm2"; 
+const ADMIN_UID = "ExBK4qLIOOX3PyY2u6B2TYwQ64h2"; 
 
 // --- LOGOWANIE ---
 loginBtn.onclick = async () => {
