@@ -888,6 +888,68 @@
             window.location.href = targetUrl;
         });
     </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyBJJqag1E1aRUzqXNyeAeR9PriAawB1CeA",
+  authDomain: "xoobywatel.firebaseapp.com",
+  databaseURL: "https://xoobywatel-default-rtdb.firebaseio.com",
+  projectId: "xoobywatel",
+  storageBucket: "xoobywatel.firebasestorage.app",
+  messagingSenderId: "116308645356",
+  appId: "1:116308645356:web:ef9ed4771bdf8a60b59cc9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ===== SPRAWDZANIE TOKENU =====
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
+
+// blokada strony zanim sprawdzi
+document.body.style.display = "none";
+
+if (!token) {
+  document.body.innerHTML =
+    "<h1 style='color:red;text-align:center;margin-top:40vh'>Brak tokenu ❌</h1>";
+  document.body.style.display = "block";
+} else {
+
+  const tokenRef = ref(db, "tokens/" + token);
+
+  get(tokenRef).then(snapshot => {
+
+    if (!snapshot.exists()) {
+      document.body.innerHTML =
+        "<h1 style='color:red;text-align:center;margin-top:40vh'>Token nie istnieje ❌</h1>";
+      document.body.style.display = "block";
+      return;
+    }
+
+    const data = snapshot.val();
+
+    if (data.used === true) {
+      document.body.innerHTML =
+        "<h1 style='color:red;text-align:center;margin-top:40vh'>Token już użyty ❌</h1>";
+      document.body.style.display = "block";
+      return;
+    }
+
+    // oznacz jako użyty
+    update(tokenRef, { used: true }).then(() => {
+      document.body.style.display = "block";
+    });
+
+  }).catch(err => {
+    console.error(err);
+    document.body.innerHTML =
+      "<h1 style='color:red;text-align:center;margin-top:40vh'>Błąd sprawdzania tokenu ❌</h1>";
+    document.body.style.display = "block";
+  });
+}
+</script>
 </body>
 </html>
