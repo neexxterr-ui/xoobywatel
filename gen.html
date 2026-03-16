@@ -347,7 +347,7 @@
 
     </style>
 </head>
-<body>
+<body style="display:none;">
     <div class="container">
         <h1>Mbywatel4.0</h1>
  <details class="instruction-details">
@@ -905,50 +905,62 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ===== SPRAWDZANIE TOKENU =====
+// pobieramy token z URL
 const params = new URLSearchParams(window.location.search);
 const token = params.get("token");
 
-// blokada strony zanim sprawdzi
-document.body.style.display = "none";
+// funkcja blokady strony
+function blockPage(msg){
+    document.body.innerHTML = `
+        <div style="
+            background:#111;
+            color:white;
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            font-family:sans-serif;
+            font-size:24px;
+            text-align:center;">
+            ${msg}
+        </div>
+    `;
+}
 
-if (!token) {
-  document.body.innerHTML =
-    "<h1 style='color:red;text-align:center;margin-top:40vh'>Brak tokenu ❌</h1>";
-  document.body.style.display = "block";
-} else {
+// BRAK TOKENU
+if(!token){
+    blockPage("❌ Brak tokenu w linku");
+}else{
 
-  const tokenRef = ref(db, "tokens/" + token);
+    const tokenRef = ref(db, "tokens/" + token);
 
-  get(tokenRef).then(snapshot => {
+    get(tokenRef).then(snapshot => {
 
-    if (!snapshot.exists()) {
-      document.body.innerHTML =
-        "<h1 style='color:red;text-align:center;margin-top:40vh'>Token nie istnieje ❌</h1>";
-      document.body.style.display = "block";
-      return;
-    }
+        if(!snapshot.exists()){
+            blockPage("❌ Token nie istnieje");
+            return;
+        }
 
-    const data = snapshot.val();
+        const data = snapshot.val();
 
-    if (data.used === true) {
-      document.body.innerHTML =
-        "<h1 style='color:red;text-align:center;margin-top:40vh'>Token już użyty ❌</h1>";
-      document.body.style.display = "block";
-      return;
-    }
+        if(data.used === true){
+            blockPage("❌ Token został już użyty");
+            return;
+        }
 
-    // oznacz jako użyty
-    update(tokenRef, { used: true }).then(() => {
-      document.body.style.display = "block";
+        // oznaczamy jako użyty
+        update(tokenRef,{ used:true }).then(()=>{
+
+            // pokazujemy stronę dopiero TERAZ
+            document.body.style.display = "block";
+
+        }).catch(()=>{
+            blockPage("❌ Błąd aktualizacji tokenu");
+        });
+
+    }).catch(()=>{
+        blockPage("❌ Błąd połączenia z bazą");
     });
-
-  }).catch(err => {
-    console.error(err);
-    document.body.innerHTML =
-      "<h1 style='color:red;text-align:center;margin-top:40vh'>Błąd sprawdzania tokenu ❌</h1>";
-    document.body.style.display = "block";
-  });
 }
 </script>
 </body>
